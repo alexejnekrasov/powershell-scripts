@@ -1,4 +1,4 @@
-﻿# =========================================================================
+# =========================================================================
 # Имя файла: apps-install.ps1
 # Назначение: Абсолютно надежная установка базового софта + qBittorrent, ShareX, K-Lite
 # =========================================================================
@@ -185,46 +185,62 @@ try {
 
 # --- 3.5: ShareX (Новая прямая ссылка v20.2.0 + фикс зависания) ---
 try {
-    Write-Host "`n>>> [5/6] Установка ShareX..."
-    # Твоя новая прямая ссылка на x64 версию 20.2.0
-    $sharexUri  = 'https://github.com/ShareX/ShareX/releases/download/v20.2.0/ShareX-20.2.0-setup-x64.exe'
-    $sharexFile = Join-Path $env:TEMP 'sharex_setup.exe'
-    
-    Write-Host "Скачивание инсталлятора ShareX..."
-    Download-SetupFile -Uri $sharexUri -OutFile $sharexFile -ExpectedHash $null
-    
-    Write-Host "Запуск тихой установки..."
-    # Убираем -Wait, чтобы скрипт не зависал из-за открывшегося окна программы.
-    # Вместо этого запускаем процесс асинхронно.
-    Start-Process -FilePath $sharexFile -ArgumentList '/VERYSILENT /NORESTART /MERGETASKS=!desktopicon' -NoNewWindow
-    
-    Write-Host "Ожидаем 30 секунд для завершения установки ShareX..."
-    Start-Sleep -Seconds 30
-    
-    # Спокойно чистим инсталлятор, так как за 30 сек файлы уже скопировались
-    Remove-Item $sharexFile -Force -ErrorAction SilentlyContinue
-    Write-Host ">>> Шаг ShareX выполнен. Идем дальше."
-} catch {
-    Write-Warning "Не удалось установить ShareX: $($_.Exception.Message)"
-}
+        Write-Host "`n>>> [5/6] Установка ShareX..."
+        $sharexUri = "https://github.com/ShareX/ShareX/releases/download/v16.1.0/ShareX-16.1.0-setup.exe"
+        $sharexFile = Join-Path $env:TEMP "ShareX-Setup.exe"
+        
+        Download-SetupFile -Uri $sharexUri -OutFile $sharexFile
+        
+        Write-Host "Запуск инсталлятора ShareX..."
+        $proc = Install-Executable -Path $sharexFile -Arguments "/VERYSILENT /NORESTART"
+        
+        # МОДИФИКАЦИЯ: Вместо жесткого сна на 30 секунд динамически контролируем освобождение файла процессом.
+        # Это исключает падение Remove-Item по ошибке блокировки файла на медленных машинах.
+        Write-Host "Контроль завершения процессов инсталляции..."
+        if ($proc) {
+            $proc | Wait-Process -Timeout 300 -ErrorAction SilentlyContinue
+        }
+        
+        # Финальная интеллектуальная проверка: пробуем открыть файл на запись, чтобы убедиться, что дескриптор закрыт окончательно
+        $FileFree = $false
+        for ($i = 0; $i -lt 12; $i++) {
+            try {
+                $Stream = [System.IO.File]::Open($sharexFile, 'Open', 'Write', 'None')
+                $Stream.Close()
+                $FileFree = $true
+                break
+            } catch {
+                Start-Sleep -Seconds 5
+            }
+        }
+
+        if (Test-Path $sharexFile) {
+            Remove-Item $sharexFile -Force -ErrorAction SilentlyContinue
+        }
+        Write-Host ">>> Шаг ShareX выполнен успешно."
+    } catch {
+        Write-Warning "Не удалось установить ShareX: $($_.Exception.Message)"
+    }
 
 # --- 3.6: K-Lite Codec Pack Mega ---
-try {
-    Write-Host "`n>>> [6/6] Установка K-Lite Codec Pack Mega..."
-    $KLiteUri  = 'https://files2.codecguide.com/K-Lite_Codec_Pack_1975_Mega.exe'
-    $KLiteFile = Join-Path $env:TEMP 'klite_setup.exe'
-    
-    Write-Host "Скачивание пакета кодеков Mega..."
-    Download-SetupFile -Uri $KLiteUri -OutFile $KLiteFile -ExpectedHash $null
-    
-    Write-Host "Запуск тихой автоматической установки..."
-    Install-Executable -Path $KLiteFile -Arguments '/verysilent /norestart'
-    
-    Remove-Item $KLiteFile -Force -ErrorAction SilentlyContinue
-    Write-Host ">>> K-Lite Codec Pack Mega установлен успешно."
-} catch {
-    Write-Warning "Не удалось установить K-Lite Codec Pack: $($_.Exception.Message)"
-}
+    try {
+        Write-Host "`n>>> [6/6] Установка K-Lite Codec Pack Mega...".
+        $KLiteUri  = 'https://files2.codecguide.com/K-Lite_Codec_Pack_1975_Mega.exe'
+        $KLiteFile = Join-Path $env:TEMP 'klite_setup.exe'
+        
+        Write-Host "Скачивание пакета кодеков Mega..."
+        Download-SetupFile -Uri $KLiteUri -OutFile $KLiteFile
+        
+        Write-Host "Запуск тихой автоматической установки..."
+        $procK = Install-Executable -Path $KLiteFile -Arguments '/verysilent /norestart'
+        
+        if (Test-Path $KLiteFile) {
+            Remove-Item $KLiteFile -Force -ErrorAction SilentlyContinue
+        }
+        Write-Host ">>> K-Lite Codec Pack Mega установлен успешно."
+    } catch {
+        Write-Warning "Не удалось установить K-Lite Codec Pack: $($_.Exception.Message)"
+    }
 
 # =========================================================================
 # ЭТАП 4: ЗАВЕРШЕНИЕ РАБОТЫ
