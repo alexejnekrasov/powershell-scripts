@@ -1,4 +1,4 @@
-﻿# =========================================================================
+# =========================================================================
 # Имя файла: clean-and-photo.ps1
 # Назначение: Очистка системы и активация Photo Viewer
 # =========================================================================
@@ -26,6 +26,8 @@ try {
         "Microsoft.ZuneMusic",          # Музыка Groove (Groove Music) - СНОСИМ!
         "office.outlook",               # Новый Outlook
         "windowscommunicationsapps",    # Почта и Календарь
+		"Microsoft.MicrosoftStickyNotes", # Sticky Notes (Заметки)
+        "Microsoft.Office.Desktop",       # OEM-заглушки классического Office
         "Microsoft.3DViewer",           # 3D Просмотрщик
         "Microsoft.MixedReality.Portal",# Portal смешанной реальности
         "Microsoft.BingNews",           # Новости
