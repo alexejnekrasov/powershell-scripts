@@ -1,5 +1,6 @@
 # =========================================================================
 # Назначение: Модернизированный GUI Диспетчер автоматизации (Modern Dark UI)
+# Режим запуска: Полностью скрытый для дочерних процессов
 # Кодировка: UTF-8 с BOM (Обязательно для корректной кириллицы)
 # =========================================================================
 
@@ -107,7 +108,7 @@ $ProgressBar.Maximum = $ScriptsToRun.Count
 $ProgressBar.Value = 0
 $Form.Controls.Add($ProgressBar)
 
-# Нижний колонтитул / Кнопка закрытия
+# Нижний колонтитул
 $FooterLabel = New-Object System.Windows.Forms.Label
 $FooterLabel.Text = "Пожалуйста, не закрывайте это окно до завершения всех процессов."
 $FooterLabel.Location = New-Object System.Drawing.Point(20, 380)
@@ -129,17 +130,16 @@ $Form.Add_Shown({
         # 1. Обновляем статус на "Выполняется"
         $Controls.StatusLabel.Text = "▶ Выполняется..."
         $Controls.StatusLabel.ForeColor = [System.Drawing.Color]::FromArgb(137, 220, 235) # Бирюзовый
-        $CurrentActionLabel.Text = "Запуск модуля: $($Script.Name)..."
+        $CurrentActionLabel.Text = "Выполняется фоновый модуль: $($Script.Name)..."
         
         # Перерисовываем интерфейс, чтобы избежать зависания формы
         [System.Windows.Forms.Application]::DoEvents()
-        Start-Sleep -Milliseconds 500 # Небольшая пауза для визуальной плавности
+        Start-Sleep -Milliseconds 300 # Небольшая пауза для визуальной плавности
 
         if (Test-Path $ScriptPath) {
             try {
-                # Запускаем дочерний скрипт во внешнем процессе, скрывая его окно, если нужно чистый UI,
-                # либо оставляем Normal, если хочешь видеть подробный лог команд за ним.
-                $Proc = Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`"" -WindowStyle Normal -Wait -PassThru
+                # ИЗМЕНЕНО: Параметр -WindowStyle изменен на Hidden. Дочернее окно PowerShell теперь не появится.
+                $Proc = Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`"" -WindowStyle Hidden -Wait -PassThru
                 
                 if ($Proc.ExitCode -eq 0) {
                     $Controls.StatusLabel.Text = "✓ Готово"
