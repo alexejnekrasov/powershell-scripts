@@ -1,12 +1,26 @@
 # =========================================================================
 # Назначение: Модернизированный GUI Диспетчер автоматизации (Modern Dark UI)
-# Режим запуска: Полностью скрытый для дочерних процессов
+# Режим запуска: Полное скрытие собственного окна консоли + дочерних процессов
 # Кодировка: UTF-8 с BOM (Обязательно для корректной кириллицы)
 # =========================================================================
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference    = 'SilentlyContinue'
+
+# --- МАГИЯ: СКРЫВАЕМ СОБСТВЕННОЕ ОКНО КОНСОЛИ POWERSHELL ПРИ СТАРТЕ ---
+$Win32Code = @'
+[DllImport("user32.dll")]
+public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+[DllImport("kernel32.dll")]
+public static extern IntPtr GetConsoleWindow();
+'@
+$WindowManager = Add-Type -MemberDefinition $Win32Code -Name "Win32ShowWindow" -Namespace "Win32" -PassThru
+$ConsoleHandle = $WindowManager::GetConsoleWindow()
+if ($ConsoleHandle -ne [System.IntPtr]::Zero) {
+    # Скрываем окно консоли (0 = SW_HIDE)
+    $null = $WindowManager::ShowWindow($ConsoleHandle, 0)
+}
 
 # Подгружаем библиотеки графического интерфейса Windows
 Add-Type -AssemblyName System.Windows.Forms
@@ -20,7 +34,7 @@ Start-Transcript -Path (Join-Path $LogDir "Main_Setup_GUI_Dispatcher.log") -Appe
 
 # --- СПИСОК ОПЕРАЦИЙ ---
 $ScriptsToRun = @(
-    @{ Name = "clean-and-photo.ps1";        Title = "Очистка системы и кэша фото";     Status = "Ожидание" },
+    @{ Name = "clean-and-photo.ps1";        Title = "Очистка системы и кэша photo";     Status = "Ожидание" },
     @{ Name = "install-sys-components.ps1"; Title = "Установка системных компонентов"; Status = "Ожидание" },
     @{ Name = "apps-install.ps1";           Title = "Развертывание базового софта";    Status = "Ожидание" },
     @{ Name = "office-install.ps1";         Title = "Инсталляция офисного пакета";     Status = "Ожидание" }
@@ -114,7 +128,7 @@ $FooterLabel.Text = "Пожалуйста, не закрывайте это ок
 $FooterLabel.Location = New-Object System.Drawing.Point(20, 380)
 $FooterLabel.Size = New-Object System.Drawing.Size(595, 25)
 $FooterLabel.ForeColor = [System.Drawing.Color]::FromArgb(147, 153, 178)
-$FooterLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+$FooterLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter # Исправлено
 $Form.Controls.Add($FooterLabel)
 
 
@@ -127,18 +141,17 @@ $Form.Add_Shown({
         $Controls = $ScriptControls[$i]
         $ScriptPath = Join-Path $ScriptsDir $Script.Name
 
-        # 1. Обновляем статус на "Выполняется"
+        # Обновляем статус на "Выполняется"
         $Controls.StatusLabel.Text = "▶ Выполняется..."
         $Controls.StatusLabel.ForeColor = [System.Drawing.Color]::FromArgb(137, 220, 235) # Бирюзовый
         $CurrentActionLabel.Text = "Выполняется фоновый модуль: $($Script.Name)..."
         
-        # Перерисовываем интерфейс, чтобы избежать зависания формы
         [System.Windows.Forms.Application]::DoEvents()
-        Start-Sleep -Milliseconds 300 # Небольшая пауза для визуальной плавности
+        Start-Sleep -Milliseconds 300 
 
         if (Test-Path $ScriptPath) {
             try {
-                # Дочерние процессы запускаются скрыто (-WindowStyle Hidden)
+                # Дочерние скрипты запускаются полностью скрытыми
                 $Proc = Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`"" -WindowStyle Hidden -Wait -PassThru
                 
                 if ($Proc.ExitCode -eq 0) {
@@ -173,11 +186,11 @@ $Form.Add_Shown({
         Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ResetPath`"" -WindowStyle Hidden
     }
 
-    # Автоматически закрываем меню по завершении
+    # Закрываем форму
     Start-Sleep -Seconds 1
     $Form.Close()
 })
 
-# Запуск приложения графического интерфейса
+# Запуск приложения
 [System.Windows.Forms.Application]::Run($Form)
 Stop-Transcript
