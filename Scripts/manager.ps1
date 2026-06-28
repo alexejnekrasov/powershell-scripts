@@ -51,7 +51,6 @@ $TitleLabel.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 14, [Syst
 $TitleLabel.ForeColor = [System.Drawing.Color]::FromArgb(137, 180, 250)
 $TitleLabel.Location = New-Object System.Drawing.Point(20, 15)
 $TitleLabel.AutoSize = $true
-$HeaderPanel.Controls.Add($TitleLabel)
 
 $TasksContainer = New-Object System.Windows.Forms.Panel
 $TasksContainer.Location = New-Object System.Drawing.Point(20, 80)
