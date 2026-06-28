@@ -100,6 +100,8 @@ $LogContainer.Controls.Add($LogTextBox)
 # СТИЛИЗОВАННАЯ ФУНКЦИЯ ЛОГА
 function Add-LogLine ($Prefix, $Message, $ColorRGB = @(166, 173, 200)) {
     $Time = (Get-Date).ToString("HH:mm:ss")
+
+    Write-Output "[$Time] [$Prefix] $Message"
     
     $LogTextBox.SelectionStart = $LogTextBox.TextLength
     $LogTextBox.SelectionColor = [System.Drawing.Color]::FromArgb(108, 112, 134)
