@@ -15,7 +15,9 @@ $Form.Size = New-Object System.Drawing.Size(960, 480)
 $Form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None # УБИРАЕМ РАМКУ
 $Form.BackColor = [System.Drawing.Color]::FromArgb(24, 24, 37)
 $Form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
-$Form.DoubleBuffered = $true
+# Принудительное включение DoubleBuffered через рефлексию
+$DoubleBufferProperty = $Form.GetType().GetProperty("DoubleBuffered", [System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::NonPublic)
+$DoubleBufferProperty.SetValue($Form, $true, $null)
 
 # --- ЛОГИКА ПЕРЕТАСКИВАНИЯ (Драг-энд-дроп окна) ---
 $Global:MouseIsDown = $false
