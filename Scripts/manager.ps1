@@ -1,6 +1,6 @@
 # =========================================================================
 # Назначение: Модернизированный GUI Диспетчер автоматизации
-# Режим: Детальный лог + Динамическая кнопка завершения
+# Режим: Интерактивная кнопка "Готово" (Активируется по завершению)
 # =========================================================================
 
 Set-StrictMode -Version Latest
@@ -21,7 +21,7 @@ if ($ConsoleHandle -ne [System.IntPtr]::Zero) { $null = $WindowManager::ShowWind
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# --- GUI ИНТЕРФЕЙС ---
+# --- GUI ---
 $Form = New-Object System.Windows.Forms.Form
 $Form.Text = " Автоматическая настройка системы"
 $Form.Size = New-Object System.Drawing.Size(960, 480)
@@ -40,13 +40,13 @@ $Form.Controls.Add($HeaderPanel)
 
 $TitleLabel = New-Object System.Windows.Forms.Label
 $TitleLabel.Text = "Менеджер автоматической настройки"
-$TitleLabel.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 14, [System.FontStyle]::Bold)
+$TitleLabel.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 14, [System.Drawing.FontStyle]::Bold)
 $TitleLabel.ForeColor = [System.Drawing.Color]::FromArgb(137, 180, 250)
 $TitleLabel.Location = New-Object System.Drawing.Point(20, 15)
 $TitleLabel.AutoSize = $true
 $HeaderPanel.Controls.Add($TitleLabel)
 
-# Панель задач
+# Контейнер задач
 $TasksContainer = New-Object System.Windows.Forms.Panel
 $TasksContainer.Location = New-Object System.Drawing.Point(20, 80)
 $TasksContainer.Size = New-Object System.Drawing.Size(540, 200)
@@ -71,21 +71,20 @@ $LogTextBox.ReadOnly = $true
 $LogTextBox.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
 $LogContainer.Controls.Add($LogTextBox)
 
-# --- КНОПКА ГОТОВО (Динамическая) ---
+# --- КНОПКА ГОТОВО (Изначально неактивная) ---
 $DoneButton = New-Object System.Windows.Forms.Button
 $DoneButton.Text = "ГОТОВО"
 $DoneButton.Location = New-Object System.Drawing.Point(740, 380)
 $DoneButton.Size = New-Object System.Drawing.Size(180, 40)
-# Начальное состояние: неактивное (блеклое)
-$DoneButton.BackColor = [System.Drawing.Color]::FromArgb(60, 60, 80) 
-$DoneButton.ForeColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+$DoneButton.BackColor = [System.Drawing.Color]::FromArgb(137, 180, 250)
+$DoneButton.ForeColor = [System.Drawing.Color]::FromArgb(30, 30, 46)
 $DoneButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
 $DoneButton.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 10, [System.Drawing.FontStyle]::Bold)
-$DoneButton.Enabled = $false
+$DoneButton.Enabled = $false # Кнопка неактивна
 $DoneButton.Add_Click({ $Form.Close() })
 $Form.Controls.Add($DoneButton)
 
-# Функция подробного лога
+# Логика функций
 function Add-LogLine ($Prefix, $Message, $ColorRGB = @(166, 173, 200)) {
     $Time = (Get-Date).ToString("HH:mm:ss")
     $LogTextBox.SelectionStart = $LogTextBox.TextLength
@@ -101,6 +100,7 @@ function Add-LogLine ($Prefix, $Message, $ColorRGB = @(166, 173, 200)) {
     [System.Windows.Forms.Application]::DoEvents()
 }
 
+# Массив задач
 $ScriptsToRun = @(
     @{ Name = "clean-and-photo.ps1";        Title = "Оптимизация ОС и просмотр фото";      Status = "Ожидание" },
     @{ Name = "install-sys-components.ps1"; Title = "Установка системных компонентов";      Status = "Ожидание" },
@@ -133,7 +133,7 @@ for ($i = 0; $i -lt $ScriptsToRun.Count; $i++) {
 }
 
 $CurrentActionLabel = New-Object System.Windows.Forms.Label
-$CurrentActionLabel.Text = "Инициализация системы..."
+$CurrentActionLabel.Text = "Инициализация..."
 $CurrentActionLabel.Location = New-Object System.Drawing.Point(20, 300)
 $CurrentActionLabel.Size = New-Object System.Drawing.Size(540, 25)
 $Form.Controls.Add($CurrentActionLabel)
@@ -144,70 +144,45 @@ $ProgressBar.Size = New-Object System.Drawing.Size(540, 25)
 $ProgressBar.Maximum = $ScriptsToRun.Count
 $Form.Controls.Add($ProgressBar)
 
-# --- ЛОГИКА ВЫПОЛНЕНИЯ ---
+# --- ЛОГИКА ---
 $Form.Add_Shown({
     $ScriptsDir = "C:\Windows\Setup\Scripts"
     $Cyan = @(137, 220, 235); $Purple = @(203, 166, 247); $Green = @(166, 227, 161); $Red = @(243, 139, 168); $Yellow = @(249, 226, 175)
 
-    Add-LogLine "CORE" "Запуск планировщика автоматизации..." $Cyan
+    Add-LogLine "CORE" "Запуск планировщика..." $Cyan
     
     for ($i = 0; $i -lt $ScriptsToRun.Count; $i++) {
         $Script = $ScriptsToRun[$i]; $Controls = $ScriptControls[$i]; $ScriptPath = Join-Path $ScriptsDir $Script.Name
-        
         $Controls.StatusLabel.Text = "▶ Выполняется..."
         $Controls.StatusLabel.ForeColor = [System.Drawing.Color]::FromArgb(137, 220, 235)
         $CurrentActionLabel.Text = "Обработка: $($Script.Name)..."
         
-        # Подробные логи возвращены
-        switch ($Script.Name) {
-            "clean-and-photo.ps1" {
-                Add-LogLine "TASK" "Инициализация модуля очистки" $Purple
-                Add-LogLine "UWP"  "Удаление мусорных UWP приложений"
-                Add-LogLine "CACHE" "Очистка временных файлов и логов"
-                Add-LogLine "PHOTO" "Оптимизация кэша изображений"
-            }
-            "install-sys-components.ps1" {
-                Add-LogLine "TASK" "Настройка среды OS" $Purple
-                Add-LogLine "NET"  "Включение .NET Framework"
-                Add-LogLine "DX"   "Инсталляция DirectX/Vulkan"
-                Add-LogLine "VC"   "Обновление Visual C++ Runtimes"
-            }
-            "apps-install.ps1" {
-                Add-LogLine "TASK" "Развертывание ПО" $Purple
-                Add-LogLine "PKG"  "Инициализация пакетного менеджера"
-                Add-LogLine "WEB"  "Установка Google Chrome"
-                Add-LogLine "UTIL" "Развертывание утилит"
-            }
-            "office-install.ps1" {
-                Add-LogLine "TASK" "Настройка MS Office" $Purple
-                Add-LogLine "MOUNT" "Монтирование дистрибутива"
-                Add-LogLine "INST"  "Тихая установка пакета"
-                Add-LogLine "KMS"   "Инъекция лицензии / Активация"
-            }
-        }
+        # Индивидуальный лог
+        if ($Script.Name -eq "clean-and-photo.ps1") { Add-LogLine "TASK" "Запуск оптимизации ОС" $Purple }
+        elseif ($Script.Name -eq "install-sys-components.ps1") { Add-LogLine "TASK" "Настройка компонентов" $Purple }
+        elseif ($Script.Name -eq "apps-install.ps1") { Add-LogLine "TASK" "Установка ПО" $Purple }
+        elseif ($Script.Name -eq "office-install.ps1") { Add-LogLine "TASK" "Установка Office" $Purple }
 
         if (Test-Path $ScriptPath) {
             $Proc = Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`"" -WindowStyle Hidden -PassThru
             while (-not $Proc.HasExited) { [System.Windows.Forms.Application]::DoEvents(); Start-Sleep -Milliseconds 100 }
             if ($Proc.ExitCode -eq 0) {
                 $Controls.StatusLabel.Text = "✓ Готово"; $Controls.StatusLabel.ForeColor = [System.Drawing.Color]::FromArgb(166, 227, 161)
-                Add-LogLine " OK " "Модуль успешно завершен." $Green
+                Add-LogLine " OK " "Модуль завершен." $Green
             } else {
                 $Controls.StatusLabel.Text = "✗ Сбой"; $Controls.StatusLabel.ForeColor = [System.Drawing.Color]::FromArgb(243, 139, 168)
-                Add-LogLine "FAIL" "Код ошибки: $($Proc.ExitCode)" $Red
+                Add-LogLine "FAIL" "Ошибка кода: $($Proc.ExitCode)" $Red
             }
         }
         $ProgressBar.Value = $i + 1
         [System.Windows.Forms.Application]::DoEvents()
     }
 
-    $CurrentActionLabel.Text = "Все операции успешно завершены."
+    $CurrentActionLabel.Text = "Все задачи завершены. Нажмите 'Готово'."
     Add-LogLine "DONE" "Настройка окончена." $Green
     
-    # Активируем кнопку (Меняем цвет на яркий и включаем)
+    # Активируем кнопку
     $DoneButton.Enabled = $true
-    $DoneButton.BackColor = [System.Drawing.Color]::FromArgb(137, 180, 250)
-    $DoneButton.ForeColor = [System.Drawing.Color]::FromArgb(30, 30, 46)
 })
 
 [System.Windows.Forms.Application]::Run($Form)
