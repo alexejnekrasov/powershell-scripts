@@ -1,12 +1,11 @@
 # =========================================================================
-# Итоговый Диспетчер автоматизации
+# Итоговый исправленный manager.ps1
 # =========================================================================
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference    = 'SilentlyContinue'
 
-# Функция принудительного завершения
 function Exit-Application {
     $Form.Close()
     Stop-Process -Id $PID -Force
@@ -27,7 +26,6 @@ $ScriptsToRun = @(
     @{ Name = "office-install.ps1";         Title = "Установка и активация Microsoft Office"; Status = "Ожидание" }
 )
 
-# --- GUI ---
 $Form = New-Object System.Windows.Forms.Form
 $Form.Text = " Автоматическая настройка системы"
 $Form.Size = New-Object System.Drawing.Size(960, 480)
@@ -39,7 +37,6 @@ $Form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
 $Form.MaximizeBox = $false
 $Form.TopMost = $true 
 
-# Шапка
 $HeaderPanel = New-Object System.Windows.Forms.Panel
 $HeaderPanel.Size = New-Object System.Drawing.Size(960, 60)
 $HeaderPanel.BackColor = [System.Drawing.Color]::FromArgb(30, 30, 46)
@@ -47,13 +44,13 @@ $Form.Controls.Add($HeaderPanel)
 
 $TitleLabel = New-Object System.Windows.Forms.Label
 $TitleLabel.Text = "Менеджер автоматической настройки"
-$TitleLabel.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 14, 1) # 1 = Bold
+# ИСПРАВЛЕНО: принудительное приведение типа
+$TitleLabel.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 14, [System.Drawing.FontStyle]1)
 $TitleLabel.ForeColor = [System.Drawing.Color]::FromArgb(137, 180, 250)
 $TitleLabel.Location = New-Object System.Drawing.Point(20, 15)
 $TitleLabel.AutoSize = $true
 $HeaderPanel.Controls.Add($TitleLabel)
 
-# Контейнеры
 $TasksContainer = New-Object System.Windows.Forms.Panel
 $TasksContainer.Location = New-Object System.Drawing.Point(20, 80)
 $TasksContainer.Size = New-Object System.Drawing.Size(540, 200)
@@ -72,24 +69,24 @@ $LogTextBox.Size = New-Object System.Drawing.Size(310, 245)
 $LogTextBox.BackColor = [System.Drawing.Color]::FromArgb(17, 17, 27)
 $LogTextBox.ForeColor = [System.Drawing.Color]::FromArgb(166, 173, 200)
 $LogTextBox.BorderStyle = [System.Windows.Forms.BorderStyle]::None
-$LogTextBox.Font = New-Object System.Drawing.Font("Consolas", 9.5, 1) # 1 = Bold
+# ИСПРАВЛЕНО: принудительное приведение типа
+$LogTextBox.Font = New-Object System.Drawing.Font("Consolas", 9.5, [System.Drawing.FontStyle]1)
 $LogTextBox.ReadOnly = $true
 $LogTextBox.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
 $LogContainer.Controls.Add($LogTextBox)
 
-# Кнопка Готово
 $DoneButton = New-Object System.Windows.Forms.Button
 $DoneButton.Text = "ГОТОВО"
 $DoneButton.Location = New-Object System.Drawing.Point(740, 380)
 $DoneButton.Size = New-Object System.Drawing.Size(180, 40)
 $DoneButton.BackColor = [System.Drawing.Color]::FromArgb(137, 180, 250)
 $DoneButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-$DoneButton.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 10, 1)
+# ИСПРАВЛЕНО: принудительное приведение типа
+$DoneButton.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 10, [System.Drawing.FontStyle]1)
 $DoneButton.Visible = $false
 $DoneButton.Add_Click({ Exit-Application })
 $Form.Controls.Add($DoneButton)
 
-# Лог-функция
 function Add-LogLine ($Prefix, $Message, $ColorRGB = @(166, 173, 200)) {
     $Time = (Get-Date).ToString("HH:mm:ss")
     $LogTextBox.SelectionStart = $LogTextBox.TextLength
@@ -105,7 +102,6 @@ function Add-LogLine ($Prefix, $Message, $ColorRGB = @(166, 173, 200)) {
     [System.Windows.Forms.Application]::DoEvents()
 }
 
-# Генерация задач
 $ScriptControls = @()
 $YOffset = 15
 for ($i = 0; $i -lt $ScriptsToRun.Count; $i++) {
@@ -121,7 +117,8 @@ for ($i = 0; $i -lt $ScriptsToRun.Count; $i++) {
     $StatusLabel.Text = "• Ожидание"
     $StatusLabel.Location = New-Object System.Drawing.Point(400, $YOffset)
     $StatusLabel.Size = New-Object System.Drawing.Size(130, 25)
-    $StatusLabel.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 10, 1) # 1 = Bold
+    # ИСПРАВЛЕНО: принудительное приведение типа
+    $StatusLabel.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 10, [System.Drawing.FontStyle]1)
     $StatusLabel.ForeColor = [System.Drawing.Color]::FromArgb(166, 173, 200)
     $TasksContainer.Controls.Add($StatusLabel)
     
@@ -141,7 +138,6 @@ $ProgressBar.Size = New-Object System.Drawing.Size(540, 25)
 $ProgressBar.Maximum = $ScriptsToRun.Count
 $Form.Controls.Add($ProgressBar)
 
-# Логика запуска
 $Form.Add_Shown({
     $ScriptsDir = "C:\Windows\Setup\Scripts"
     $Green = @(166, 227, 161); $Red = @(243, 139, 168)
