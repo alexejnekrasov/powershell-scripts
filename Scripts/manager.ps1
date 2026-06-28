@@ -109,13 +109,12 @@ $ProgressBar.Value = 0
 $Form.Controls.Add($ProgressBar)
 
 # Нижний колонтитул
-# Нижний колонтитул
 $FooterLabel = New-Object System.Windows.Forms.Label
 $FooterLabel.Text = "Пожалуйста, не закрывайте это окно до завершения всех процессов."
 $FooterLabel.Location = New-Object System.Drawing.Point(20, 380)
 $FooterLabel.Size = New-Object System.Drawing.Size(595, 25)
 $FooterLabel.ForeColor = [System.Drawing.Color]::FromArgb(147, 153, 178)
-$FooterLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter # Исправлено здесь
+$FooterLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
 $Form.Controls.Add($FooterLabel)
 
 
@@ -139,7 +138,7 @@ $Form.Add_Shown({
 
         if (Test-Path $ScriptPath) {
             try {
-                # ИЗМЕНЕНО: Параметр -WindowStyle изменен на Hidden. Дочернее окно PowerShell теперь не появится.
+                # Дочерние процессы запускаются скрыто (-WindowStyle Hidden)
                 $Proc = Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`"" -WindowStyle Hidden -Wait -PassThru
                 
                 if ($Proc.ExitCode -eq 0) {
@@ -174,7 +173,7 @@ $Form.Add_Shown({
         Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ResetPath`"" -WindowStyle Hidden
     }
 
-    # Автоматически закрываем красивое меню по завершении
+    # Автоматически закрываем меню по завершении
     Start-Sleep -Seconds 1
     $Form.Close()
 })
